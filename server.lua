@@ -1,47 +1,49 @@
 VORP = exports.vorp_core:GetCore()
-local onDutyOfficers = {}
-local trackedOfficers = {}
+local onDutyPlayers = {}
+local trackedPlayers = {}
 
 CreateThread(function()
     while true do
         Wait(Config.UpdateInterval)
 
-        local _trackedOfficers = {}
-        local _onDutyOfficers = {}
+        local _trackedPlayers = {}
+        local _onDutyPlayers = {}
         local players = VORP.getUsers()
 
-        for _, player in pairs(players) do   
-            local isPolice = Player(player.source).state.IsPolice
-            local hasTracker = exports.vorp_inventory:getItemCount(player.source,nil, Config.TrackerItem) > 0
-            local isOnDuty = exports.outsider_policeman:IsOnPoliceDuty(player.source)
+        for _, player in pairs(players) do
+            local character = player.UsedCharacter()
+            if Config.Tracker[character.job] then
+                local hasTracker = exports.vorp_inventory:getItemCount(player.source, nil, Config.TrackerItem) > 0
+                local isOnDuty = Config.OnDuty(player.source, character.job)
 
-            if isPolice and hasTracker then                
-                local playerPed = GetPlayerPed(player.source)
-                local character = player.UsedCharacter()
-                table.insert(_trackedOfficers, {
-                    serverId = player.source,
-                    name = character.firstname.." "..character.lastname,
-                    location = GetEntityCoords(playerPed)
-                })
-            end
-            if isOnDuty then
-                _onDutyOfficers[player.source] = true
-            elseif onDutyOfficers[player.source] then                
-                TriggerClientEvent('police_tracker:update_blips', player.source, {})
+                if hasTracker then
+                    local playerPed = GetPlayerPed(player.source)
+                    table.insert(_trackedPlayers, {
+                        serverId = player.source,
+                        name = character.firstname .. " " .. character.lastname,
+                        job = character.job,
+                        location = GetEntityCoords(playerPed)
+                    })
+                end
+                if isOnDuty then
+                    _onDutyPlayers[player.source] = true
+                elseif onDutyPlayers[player.source] then
+                    TriggerClientEvent('vorp_tracker:update_blips', player.source, {})
+                end
             end
         end
-        onDutyOfficers = _onDutyOfficers
-        trackedOfficers = _trackedOfficers
+        onDutyPlayers = _onDutyPlayers
+        trackedPlayers = _trackedPlayers
     end
 end)
 
 CreateThread(function()
-    Wait(3000) 
+    Wait(3000)
     while true do
         Wait(Config.UpdateInterval)
 
-        for source in pairs(onDutyOfficers) do
-            TriggerClientEvent('police_tracker:update_blips', source, trackedOfficers)
+        for source in pairs(onDutyPlayers) do
+            TriggerClientEvent('vorp_tracker:update_blips', source, trackedPlayers)
         end
     end
 end)

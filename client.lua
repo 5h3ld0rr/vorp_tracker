@@ -1,33 +1,35 @@
 local DutyBlips = {}
 
-RegisterNetEvent('police_tracker:update_blips', function(officers)
+RegisterNetEvent('vorp_tracker:update_blips', function(players)
     local myServerId = GetPlayerServerId(PlayerId())
     local newTrackedIds = {}
 
-    for _, officer in ipairs(officers) do
-        if officer.serverId ~= myServerId then
-            newTrackedIds[officer.serverId] = true
-            local ped = GetPlayerPed(GetPlayerFromServerId(officer.serverId))
+    for _, player in ipairs(players) do
+        if player.serverId ~= myServerId then
+            newTrackedIds[player.serverId] = true
+            local ped = GetPlayerPed(GetPlayerFromServerId(player.serverId))
             local blip = GetBlipFromEntity(ped)
             if not DoesBlipExist(blip) then                
-                blip = DutyBlips[officer.serverId]
+                blip = DutyBlips[player.serverId]
                 if DoesBlipExist(blip) then
                     RemoveBlip(blip)
                 end
-                if NetworkIsPlayerActive(GetPlayerFromServerId(officer.serverId)) then
-                    blip = BlipAddForEntity(Config.BlipSprite, ped)
+                if NetworkIsPlayerActive(GetPlayerFromServerId(player.serverId)) then
+                    blip = BlipAddForEntity(-214162151, ped)
                 else
-                    blip = BlipAddForCoords(Config.BlipSprite, officer.location.x, officer.location.y, officer.location.z)
+                    blip = BlipAddForCoords(-214162151, player.location.x, player.location.y, player.location.z)
                 end
-                SetBlipName(blip, (Config.BlipNameTemplate):format(officer.name))
-                BlipAddStyle(blip, Config.BlipStyle)
-                BlipAddModifier(blip, Config.BlipModifier)
-                DutyBlips[officer.serverId] = blip
+                SetBlipSprite(blip, Config.Tracker[player.job].BlipSprite, true)
+                SetBlipScale(blip, 0.1)
+                SetBlipName(blip, player.job..": "..player.name)
+                BlipAddStyle(blip, Config.Tracker[player.job].BlipStyle)
+                BlipAddModifier(blip, Config.Tracker[player.job].BlipModifier)
+                DutyBlips[player.serverId] = blip
             end
         end
     end
 
-    -- Remove blips for officers no longer tracked
+    -- Remove blips for players no longer tracked
     for serverId, blip in pairs(DutyBlips) do
         if not newTrackedIds[serverId] then
             if DoesBlipExist(blip) then
