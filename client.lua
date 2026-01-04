@@ -9,7 +9,7 @@ RegisterNetEvent('vorp_tracker:update_blips', function(players)
             newTrackedIds[player.serverId] = true
             local ped = GetPlayerPed(GetPlayerFromServerId(player.serverId))
             local blip = GetBlipFromEntity(ped)
-            if not DoesBlipExist(blip) then                
+            if not DoesBlipExist(blip) then
                 blip = DutyBlips[player.serverId]
                 if DoesBlipExist(blip) then
                     RemoveBlip(blip)
@@ -20,8 +20,7 @@ RegisterNetEvent('vorp_tracker:update_blips', function(players)
                     blip = BlipAddForCoords(-214162151, player.location.x, player.location.y, player.location.z)
                 end
                 SetBlipSprite(blip, Config.Tracker[player.job].BlipSprite, true)
-                SetBlipScale(blip, 0.1)
-                SetBlipName(blip, player.job..": "..player.name)
+                SetBlipName(blip, player.job .. ": " .. player.name)
                 BlipAddStyle(blip, Config.Tracker[player.job].BlipStyle)
                 BlipAddModifier(blip, Config.Tracker[player.job].BlipModifier)
                 DutyBlips[player.serverId] = blip
