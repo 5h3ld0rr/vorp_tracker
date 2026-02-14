@@ -1,6 +1,8 @@
 Config = {}
 
+Config.DevMode = false
 Config.TrackerItem = "tracker"
+Config.TrackOnlyOnDuty = true
 Config.UpdateInterval = 1000
 
 -- Blip settings
