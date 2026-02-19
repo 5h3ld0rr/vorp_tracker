@@ -1,6 +1,7 @@
 local VORP = exports.vorp_core:GetCore()
 local VorpInv = exports.vorp_inventory:vorp_inventoryApi()
 
+local CHARACTERS = {}
 local TRACKED_PLAYERS = {}
 local ONDUTY_PLAYERS = {}
 local HAS_TRACKER = {}
@@ -12,38 +13,28 @@ CreateThread(function()
     while true do
         local _trackedPlayers = {}
         local _onDutyPlayers = {}
-        local players = VORP.getUsers()
 
-        for _, player in pairs(players) do
-            local character = player.UsedCharacter()
-            if character and Config.Tracker[character.job] then
-                local source = player.source
-                
-                local isOnDuty = Config.OnDuty(source, character.job)
+        for source, character in pairs(CHARACTERS) do
+            local isOnDuty = Config.OnDuty(source, character.job)
 
-                if HAS_TRACKER[source] and (not Config.TrackOnlyOnDuty or isOnDuty) then
-                    _trackedPlayers[source] = {
-                        name = character.firstname .. " " .. character.lastname,
-                        job = character.job
-                    }
-                end
-                if isOnDuty then
-                    _onDutyPlayers[source] = true
-                elseif ONDUTY_PLAYERS[source] then
-                    TriggerClientEvent('vorp_tracker:update_blips', source, {})
-                end
+            if HAS_TRACKER[source] and (not Config.TrackOnlyOnDuty or isOnDuty) then
+                _trackedPlayers[source] = character
+            end
+            if isOnDuty then
+                _onDutyPlayers[source] = true
+            elseif ONDUTY_PLAYERS[source] then
+                TriggerClientEvent('vorp_tracker:update_blips', source, {})
             end
         end
-
         TRACKED_PLAYERS = _trackedPlayers
         ONDUTY_PLAYERS = _onDutyPlayers
-        Wait(10000)
+        Wait(5000)
     end
 end)
 
 CreateThread(function()
     while true do
-        Wait(Config.UpdateInterval)
+        Wait(1000)
 
         local currentTrackedData = {}
 
@@ -65,21 +56,35 @@ CreateThread(function()
     end
 end)
 
-CreateThread(function()
-    if Config.DevMode then
+if Config.DevMode then
+    CreateThread(function()
         for _, source in pairs(GetPlayers()) do
-            local hasTracker = VorpInv.getItemCount(source, Config.TrackerItem) > 0
-            HAS_TRACKER[tonumber(source)] = hasTracker
-            DebugPrint("Initial tracker state for player", source, hasTracker)
+            local character = VORP.getUser(source).getUsedCharacter
+            if Config.Tracker[character.job] then
+                CHARACTERS[tonumber(source)] = {
+                    name = character.firstname .. " " .. character.lastname,
+                    job = character.job
+                }
+                local hasTracker = VorpInv.getItemCount(source, Config.TrackerItem) > 0
+                HAS_TRACKER[tonumber(source)] = hasTracker
+                DebugPrint("Initial tracker state for player", source, hasTracker)
+            end
         end
-    end
-end)
+    end)
+end
 
-AddEventHandler('vorp:SelectedCharacter', function(source, character)
-    local hasTracker = VorpInv.getItemCount(source, Config.TrackerItem) > 0
-    HAS_TRACKER[tonumber(source)] = hasTracker
-    DebugPrint("Player has tracker:", source, hasTracker)
-end)
+if not Config.DevMode then
+    AddEventHandler('vorp:SelectedCharacter', function(source, character)
+        Wait(5000)
+        if not Config.Tracker[character.job] then return end
+        CHARACTERS[tonumber(source)] = {
+            name = character.firstname .. " " .. character.lastname,
+            job = character.job
+        }
+        local hasTracker = VorpInv.getItemCount(source, Config.TrackerItem) > 0
+        HAS_TRACKER[tonumber(source)] = hasTracker
+    end)
+end
 
 
 AddEventHandler('vorp_inventory:Server:OnItemCreated', function(data, source)
@@ -100,6 +105,7 @@ end)
 
 AddEventHandler('playerDropped', function()
     local source = tonumber(source)
+    CHARACTERS[source] = nil
     TRACKED_PLAYERS[source] = nil
     ONDUTY_PLAYERS[source] = nil
     HAS_TRACKER[source] = nil

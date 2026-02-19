@@ -3,7 +3,6 @@ Config = {}
 Config.DevMode = false
 Config.TrackerItem = "tracker"
 Config.TrackOnlyOnDuty = true
-Config.UpdateInterval = 1000
 
 -- Blip settings
 -- https://github.com/femga/rdr3_discoveries/tree/master/useful_info_from_rpfs
